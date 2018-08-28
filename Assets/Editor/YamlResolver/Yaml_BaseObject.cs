@@ -2,13 +2,15 @@ using System.Text.RegularExpressions;
 
 public abstract class Yaml_BaseObject
 {
-    public string fileID { private set; get; }
-    public string fullPath { private set; get; }
+    public string fileID { get { return arg.fileID; } }
+    public string fullPath { get { return arg.fullPath; } }
+    public YamlType yamlType { get { return arg.yamlType; } }
 
-    public Yaml_BaseObject(string pID, string pFullPath)
+    public Yaml_BaseArg arg { private set; get; }
+
+    public Yaml_BaseObject(Yaml_BaseArg pArg)
     {
-        fileID = pID;
-        fullPath = pFullPath;
+        arg = pArg;
     }
 
     public string GetNameByContent(string pContent)

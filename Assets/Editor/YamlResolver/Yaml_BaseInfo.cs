@@ -19,7 +19,13 @@ public class Yaml_ScriptInfo : Yaml_BaseInfo
 
 public class Ymal_UISpriteInfo : Yaml_BaseInfo
 {
+    public string spriteName { set; get; }
+
     public Ymal_UISpriteInfo(string pFileID, string pGuid) : base(pFileID, pGuid)
     {
+    }
+    public Ymal_UISpriteInfo() : base(string.Empty, string.Empty)
+    {
+
     }
 }

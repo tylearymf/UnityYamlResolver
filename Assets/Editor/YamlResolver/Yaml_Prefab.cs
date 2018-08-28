@@ -2,11 +2,9 @@ using UnityEngine;
 
 public class Yaml_Prefab : Yaml_BaseObject
 {
-    public const int cID = (int)YamlType.Prefab;
-
     string mRootGameObjectFileID;
 
-    public Yaml_Prefab(string pID, string pFullPath) : base(pID, pFullPath)
+    public Yaml_Prefab(Yaml_BaseArg pArg) : base(pArg)
     {
     }
 

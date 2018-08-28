@@ -1,3 +1,6 @@
+Ôªø
+using System;
+using UnityEngine;
 
 static public class YamlHelper
 {
@@ -9,15 +12,54 @@ static public class YamlHelper
     }
 
     /// <summary>
-    /// ªÒ»°Ω‚Œˆ∆˜
+    /// Ëé∑ÂèñËß£ÊûêÂô®
     /// </summary>
     /// <param name="pFileID"></param>
     /// <returns></returns>
-    static public YamlResolver GetResolver(string pFullPath)
+    static public YamlResolver GetResolver(string pFullPath, bool pIfNullResolve = false)
     {
         if (YamlResolver.sResolverDic == null) return null;
         YamlResolver tResolver = null;
-        if (!YamlResolver.sResolverDic.TryGetValue(pFullPath, out tResolver)) return null;
+        YamlResolver.sResolverDic.TryGetValue(pFullPath, out tResolver);
+        if (tResolver == null && pIfNullResolve)
+        {
+            YamlResolver.ResolveYaml(pFullPath, true);
+            return GetResolver(pFullPath, false);
+        }
         return tResolver;
+    }
+
+    static public UISprite GetSpriteByIndex(GameObject pInstance, string pFullPath, string pAtlasGuid, string pSpriteName, int pIndex)
+    {
+        var tResolver = GetResolver(pFullPath, true);
+        var tAllSprites = tResolver.GetObjects<Yaml_UISprite>();
+        var tSprites = tAllSprites.FindAll(x => x.atlasGuid == pAtlasGuid && x.spriteName == pSpriteName);
+        if (pIndex >= 0 && pIndex < tSprites.Count)
+        {
+            return tSprites[pIndex].FindThis(pInstance);
+        }
+        return null;
+    }
+
+    static public YamlType GetYamlType<T>()
+    {
+        var tType = typeof(T);
+        if (tType.IsAssignableFrom(typeof(Yaml_Prefab)) || tType.IsSubclassOf(typeof(Yaml_Prefab)))
+        {
+            return YamlType.Prefab;
+        }
+        else if (tType.IsAssignableFrom(typeof(Yaml_GameObject)) || tType.IsSubclassOf(typeof(Yaml_GameObject)))
+        {
+            return YamlType.GameObject;
+        }
+        else if (tType.IsAssignableFrom(typeof(Yaml_Trasnform)) || tType.IsSubclassOf(typeof(Yaml_Trasnform)))
+        {
+            return YamlType.Transform;
+        }
+        else if (tType.IsAssignableFrom(typeof(Yaml_MonoBehaviour)) || tType.IsSubclassOf(typeof(Yaml_MonoBehaviour)))
+        {
+            return YamlType.Monobehaviour;
+        }
+        throw new NotImplementedException("Êú™ÂÆûÁé∞:" + tType.Name);
     }
 }

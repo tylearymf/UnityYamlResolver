@@ -4,8 +4,6 @@ using System.Text.RegularExpressions;
 
 public class Yaml_Trasnform : Yaml_BaseObject
 {
-    public const int cID = (int)YamlType.Transform;
-
     string mGameObjectFileID;
     List<string> mChildFileIDs = new List<string>();
     string mParentFileID;
@@ -74,7 +72,7 @@ public class Yaml_Trasnform : Yaml_BaseObject
         }
     }
 
-    public Yaml_Trasnform(string pID, string pFullPath) : base(pID, pFullPath)
+    public Yaml_Trasnform(Yaml_BaseArg pArg) : base(pArg)
     {
     }
 

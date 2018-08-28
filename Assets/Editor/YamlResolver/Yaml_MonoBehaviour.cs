@@ -2,13 +2,32 @@ using System.Text.RegularExpressions;
 
 public class Yaml_MonoBehaviour : Yaml_BaseObject
 {
-    public const int cID = (int)YamlType.Monobehaviour;
+    public string gameObjectFileID { protected set; get; }
+    public Yaml_ScriptInfo scriptInfo { protected set; get; }
+    public string scriptGuid
+    {
+        get
+        {
+            return scriptInfo == null ? string.Empty : scriptInfo.guid;
+        }
+    }
+    public Yaml_GameObject gameObject
+    {
+        get
+        {
+            return this.GetObject<Yaml_GameObject>(gameObjectFileID);
+        }
+    }
 
-    string mGameObjectFileID;
+    public Yaml_Trasnform transform
+    {
+        get
+        {
+            return gameObject == null ? null : gameObject.transform;
+        }
+    }
 
-    public Yaml_ScriptInfo scriptInfo { private set; get; }
-
-    public Yaml_MonoBehaviour(string pID, string pFullPath) : base(pID, pFullPath)
+    public Yaml_MonoBehaviour(Yaml_BaseArg pArg) : base(pArg)
     {
     }
 
@@ -17,7 +36,7 @@ public class Yaml_MonoBehaviour : Yaml_BaseObject
         if (pContent.StartsWith("  m_GameObject:"))
         {
             var tVal = GetFileIDByContent(pContent, "m_GameObject");
-            if (tVal != null) mGameObjectFileID = tVal;
+            if (tVal != null) gameObjectFileID = tVal;
             return;
         }
 

@@ -3,8 +3,6 @@ using UnityEngine;
 
 public class Yaml_GameObject : Yaml_BaseObject
 {
-    public const int cID = (int)YamlType.GameObject;
-
     string mName;
     List<string> mComponents = new List<string>();
 
@@ -32,7 +30,7 @@ public class Yaml_GameObject : Yaml_BaseObject
         }
     }
 
-    public Yaml_GameObject(string pID, string pFullPath) : base(pID, pFullPath)
+    public Yaml_GameObject(Yaml_BaseArg pArg) : base(pArg)
     {
     }
 

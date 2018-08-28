@@ -1,8 +1,9 @@
-using System;
+ï»¿using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Reflection;
 using System.Text.RegularExpressions;
+using UnityEngine;
 
 public class YamlResolver
 {
@@ -11,36 +12,36 @@ public class YamlResolver
     /// </summary>
     static public Dictionary<string, YamlResolver> sResolverDic = new Dictionary<string, YamlResolver>();
     /// <summary>
-    /// ÊÇ·ñ³õÊ¼»¯¹ıScriptµÄGuid
+    /// æ˜¯å¦åˆå§‹åŒ–è¿‡Scriptçš„Guid
     /// </summary>
     static bool mInitScriptGuid;
     /// <summary>
-    /// keyÎªguid£¬valueÎª½âÎöÀà£¬¸ÃDictionary´æ´¢µÄÊÇMonobehaviourµÄ×ÓÀà½âÎöÆ÷
+    /// keyä¸ºguidï¼Œvalueä¸ºè§£æç±»ï¼Œè¯¥Dictionaryå­˜å‚¨çš„æ˜¯Monobehaviourçš„å­ç±»è§£æå™¨
     /// </summary>
-    static public Dictionary<string, Type> sScriptTypeDic = new Dictionary<string, Type>();
+    static Dictionary<string, Type> sScriptTypeDic = new Dictionary<string, Type>();
 
     Dictionary<YamlType, List<Yaml_BaseObject>> mCurrentDic = new Dictionary<YamlType, List<Yaml_BaseObject>>();
     public Yaml_Prefab prefabRoot { private set; get; }
 
-    static public void InitScriptGuid()
+    static void InitScriptGuid()
     {
-        //keyÎª½âÎöÀà£¬valueÎªscriptµÄmetaÎÄ¼ş¾ø¶ÔÂ·¾¶
+        //keyä¸ºè§£æç±»ï¼Œvalueä¸ºscriptçš„metaæ–‡ä»¶ç»å¯¹è·¯å¾„
         var tScriptMetaDic = new Dictionary<Type, string>()
-            {
-                { typeof(Yaml_UISprite),"" },
-            };
+        {
+            { typeof(Yaml_UISprite), Path.Combine(Application.dataPath ,"NGUI/Scripts/UI/UISprite.cs.meta") },
+        };
 
         foreach (var tMeta in tScriptMetaDic)
         {
             if (!File.Exists(tMeta.Value))
             {
-                Console.WriteLine("{0} MetaÎÄ¼şÂ·¾¶²»´æÔÚ£º{1}", tMeta.Key.Name, tMeta.Value);
+                Debug.LogErrorFormat("{0} Metaæ–‡ä»¶è·¯å¾„ä¸å­˜åœ¨ï¼š{1}", tMeta.Key.Name, tMeta.Value);
                 continue;
             }
 
             if (!tMeta.Key.IsSubclassOf(typeof(Yaml_MonoBehaviour)))
             {
-                Console.WriteLine("¸Ã½âÎöÀà²»ÊÇYaml_MonoBehaviourµÄ×ÓÀà£º{0}", tMeta.Key.Name);
+                Debug.LogErrorFormat("è¯¥è§£æç±»ä¸æ˜¯Yaml_MonoBehaviourçš„å­ç±»ï¼š{0}", tMeta.Key.Name);
                 continue;
             }
 
@@ -53,11 +54,15 @@ public class YamlResolver
         }
     }
 
-    static public void ResolveYaml(string pFullPath)
+    /// <summary>
+    /// è§£æè¯¥yamlæ–‡æœ¬ï¼Œå‚æ•°ï¼šç»å¯¹è·¯å¾„
+    /// </summary>
+    /// <param name="pFullPath">ç»å¯¹è·¯å¾„</param>
+    static public void ResolveYaml(string pFullPath, bool pForceResolve = false)
     {
         if (!File.Exists(pFullPath))
         {
-            Console.WriteLine("²»´æÔÚ¸ÃÂ·¾¶£º" + pFullPath);
+            Debug.LogErrorFormat("ä¸å­˜åœ¨è¯¥è·¯å¾„ï¼š" + pFullPath);
             return;
         }
 
@@ -67,21 +72,25 @@ public class YamlResolver
             InitScriptGuid();
         }
 
-        if (sResolverDic.ContainsKey(pFullPath))
+        if (!pForceResolve && sResolverDic.ContainsKey(pFullPath))
         {
-            Console.WriteLine("ÒÑ´æÔÚ½âÎöÊı¾İ£º" + pFullPath);
+            Debug.LogErrorFormat("å·²å­˜åœ¨è§£ææ•°æ®ï¼š" + pFullPath);
             return;
         }
 
         try
         {
             var tResolver = new YamlResolver();
-            sResolverDic.Add(pFullPath, tResolver);
+            if (!sResolverDic.ContainsKey(pFullPath))
+            {
+                sResolverDic.Add(pFullPath, null);
+            }
+            sResolverDic[pFullPath] = tResolver;
             tResolver.Resolve(pFullPath);
         }
         catch (Exception ex)
         {
-            Console.WriteLine(string.Format("{0} yamlÎÄ¼ş½âÎöÊ§°Ü", pFullPath));
+            Debug.LogException(ex);
         }
     }
 
@@ -101,14 +110,15 @@ public class YamlResolver
                     if (tLastObject == null) continue;
                     tLastObject.Resolver(tContent);
 
-                    var tScript = tLastObject as Yaml_MonoBehaviour;
-                    if (tScript != null && tScript.scriptInfo != null && !string.IsNullOrEmpty(tScript.scriptInfo.guid))
+                    if (tLastObject.GetType() == typeof(Yaml_MonoBehaviour))
                     {
+                        var tScript = tLastObject as Yaml_MonoBehaviour;
+                        if (string.IsNullOrEmpty(tScript.scriptGuid)) continue;
                         Yaml_MonoBehaviour tTempScript = null;
-                        if (sScriptTypeDic.ContainsKey(tScript.scriptInfo.guid))
+                        if (sScriptTypeDic.ContainsKey(tScript.scriptGuid))
                         {
-                            var tMonoScript = sScriptTypeDic[tScript.scriptInfo.guid];
-                            tTempScript = Activator.CreateInstance(tMonoScript, tScript.fileID, pFullPath) as Yaml_MonoBehaviour;
+                            var tMonoScript = sScriptTypeDic[tScript.scriptGuid];
+                            tTempScript = Activator.CreateInstance(tMonoScript, tScript) as Yaml_MonoBehaviour;
                         }
 
                         if (tTempScript != null)
@@ -118,35 +128,36 @@ public class YamlResolver
                             Add(YamlType.Monobehaviour, tLastObject);
                         }
                     }
-
                     continue;
                 }
                 var tVal = tMatch.Groups["yamlType"].Value;
                 var tFileID = tMatch.Groups["fileID"].Value;
-                var tYamlType = 0;
-                if (!int.TryParse(tVal, out tYamlType)) continue;
+                var tYamlTypeVal = 0;
+                if (!int.TryParse(tVal, out tYamlTypeVal)) continue;
+                var tYamlType = (YamlType)tYamlTypeVal;
+                if (tYamlType == YamlType.Unknown) continue;
                 switch (tYamlType)
                 {
-                    case Yaml_Prefab.cID:
-                        prefabRoot = new Yaml_Prefab(tFileID, pFullPath);
+                    case YamlType.GameObject:
+                        tLastObject = new Yaml_GameObject(new Yaml_BaseArg(tFileID, pFullPath, tYamlType));
+                        break;
+                    case YamlType.Transform:
+                        tLastObject = new Yaml_Trasnform(new Yaml_BaseArg(tFileID, pFullPath, tYamlType));
+                        break;
+                    case YamlType.Monobehaviour:
+                        tLastObject = new Yaml_MonoBehaviour(new Yaml_BaseArg(tFileID, pFullPath, tYamlType));
+                        break;
+                    case YamlType.Prefab:
+                        prefabRoot = new Yaml_Prefab(new Yaml_BaseArg(tFileID, pFullPath, tYamlType));
                         tLastObject = prefabRoot;
                         break;
-                    case Yaml_GameObject.cID:
-                        tLastObject = new Yaml_GameObject(tFileID, pFullPath);
-                        break;
-                    case Yaml_Trasnform.cID:
-                        tLastObject = new Yaml_Trasnform(tFileID, pFullPath);
-                        break;
-                    case Yaml_MonoBehaviour.cID:
-                        tLastObject = new Yaml_MonoBehaviour(tFileID, pFullPath);
-                        break;
                 }
-                Add((YamlType)tYamlType, tLastObject);
+                Add(tYamlType, tLastObject);
             }
         }
         if (prefabRoot == null)
         {
-            throw new NullReferenceException("ÕÒ²»µ½¸ù½Úµã");
+            throw new NullReferenceException("æ‰¾ä¸åˆ°æ ¹èŠ‚ç‚¹");
         }
         prefabRoot.ToTreeStruct();
     }
@@ -163,18 +174,19 @@ public class YamlResolver
         mCurrentDic[pYamlType].Remove(pObject);
     }
 
-    public List<T> GetObjects<T>(YamlType pYamlType) where T : Yaml_BaseObject
+    public List<T> GetObjects<T>() where T : Yaml_BaseObject
     {
+        var pYamlType = YamlHelper.GetYamlType<T>();
         List<Yaml_BaseObject> tObjects = null;
         if (!mCurrentDic.TryGetValue(pYamlType, out tObjects)) return null;
         return tObjects.ConvertAll(x => (T)x);
     }
 
-    public T GetObject<T>(YamlType pYamlType, Predicate<T> pPredicate) where T : Yaml_BaseObject
+    public T GetObject<T>(Predicate<T> pPredicate) where T : Yaml_BaseObject
     {
         T tObject = default(T);
         if (pPredicate == null) return tObject;
-        var tObjects = GetObjects<T>(pYamlType);
+        var tObjects = GetObjects<T>();
         if (tObjects == null) return tObject;
         foreach (var item in tObjects)
         {
@@ -185,11 +197,22 @@ public class YamlResolver
 
     public T GetObject<T>(string pFileID) where T : Yaml_BaseObject
     {
-        var tIDField = typeof(T).GetField("cID", BindingFlags.Static | BindingFlags.Public);
-        var tID = (int)tIDField.GetValue(null);
-        return GetObject<T>((YamlType)tID, x =>
+        return GetObject<T>(x =>
         {
             return x.fileID == pFileID;
         });
+    }
+
+    /// <summary>
+    /// æ ¹æ®guidè·å–è§£æç±»ç±»å‹
+    /// </summary>
+    /// <param name="pGuid"></param>
+    /// <returns></returns>
+    static public Type GetTypeByGuid(string pGuid)
+    {
+        if (sScriptTypeDic == null) return null;
+        Type tType = null;
+        sScriptTypeDic.TryGetValue(pGuid, out tType);
+        return tType;
     }
 }
